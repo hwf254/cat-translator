@@ -10,10 +10,56 @@
 
 需要套件: librosa, numpy, soundfile
 安裝: pip install librosa numpy soundfile --break-system-packages
+
+注意: 刻意不使用 librosa.pyin/librosa.yin 這類會觸發 numba JIT 編譯的函式,
+因為第一次編譯會瞬間吃到 300-500MB 記憶體,在 Render 免費方案(512MB)上會被
+系統 SIGKILL 砍掉。改用手寫的簡易自相關音高偵測,純 numpy 運算,記憶體足夠輕量。
 """
 
 import numpy as np
 import librosa
+
+
+def _estimate_pitch_track(y: np.ndarray, sr: int, frame_size: int = 2048, hop: int = 512,
+                           fmin: float = 60.0, fmax: float = 1500.0) -> np.ndarray:
+    """簡易逐幀自相關音高偵測,不依賴 numba,回傳每一幀的頻率(0 代表無聲/雜訊)"""
+    min_lag = int(sr / fmax)
+    max_lag = int(sr / fmin)
+
+    pitches = []
+    for start in range(0, max(1, len(y) - frame_size), hop):
+        frame = y[start:start + frame_size]
+        if len(frame) < frame_size:
+            break
+
+        # 能量太低直接判無聲,省掉不必要的運算
+        if np.sqrt(np.mean(frame ** 2)) < 0.01:
+            pitches.append(0.0)
+            continue
+
+        frame = frame - np.mean(frame)
+        # 用 FFT 算自相關(比暴力迴圈快,純 numpy 不觸發 numba)
+        corr = np.fft.irfft(np.abs(np.fft.rfft(frame, n=2 * frame_size)) ** 2)
+        corr = corr[:frame_size]
+
+        if max_lag >= len(corr):
+            pitches.append(0.0)
+            continue
+
+        segment = corr[min_lag:max_lag]
+        if len(segment) == 0 or np.max(segment) <= 0:
+            pitches.append(0.0)
+            continue
+
+        peak_lag = min_lag + int(np.argmax(segment))
+        confidence = segment.max() / (corr[0] + 1e-9)
+
+        if confidence < 0.3:  # 週期性太弱,當作無聲/雜訊處理
+            pitches.append(0.0)
+        else:
+            pitches.append(sr / peak_lag)
+
+    return np.array(pitches)
 
 
 def extract_features(audio_path: str) -> dict:
@@ -22,22 +68,19 @@ def extract_features(audio_path: str) -> dict:
 
     duration = librosa.get_duration(y=y, sr=sr)
 
-    # 基頻估計 (pyin 對貓叫的頻率範圍效果較好)
-    f0, voiced_flag, _ = librosa.pyin(
-        y, fmin=librosa.note_to_hz("C2"), fmax=librosa.note_to_hz("C7"), sr=sr
-    )
-    f0_voiced = f0[voiced_flag] if voiced_flag is not None else np.array([])
+    pitch_track = _estimate_pitch_track(y, sr)
+    f0_voiced = pitch_track[pitch_track > 0]
 
     if len(f0_voiced) < 3:
         # 抓不到穩定音高,通常代表噪音型聲音(嘶聲)或錄音太短
         mean_f0 = 0.0
         f0_trend = 0.0
     else:
-        mean_f0 = float(np.nanmean(f0_voiced))
+        mean_f0 = float(np.mean(f0_voiced))
         # 走勢: 用首尾兩段的平均差,正值=上升,負值=下降
         n = len(f0_voiced)
-        head = np.nanmean(f0_voiced[: max(1, n // 3)])
-        tail = np.nanmean(f0_voiced[-max(1, n // 3):])
+        head = np.mean(f0_voiced[: max(1, n // 3)])
+        tail = np.mean(f0_voiced[-max(1, n // 3):])
         f0_trend = float(tail - head)
 
     # 噪音程度: 過零率越高、頻譜平坦度越高 → 越接近嘶聲/噪音而非純音
