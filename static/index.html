@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>貓語翻譯</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1b1712;
+    --surface: #241f18;
+    --surface-raised: #2c2620;
+    --line: #3a3226;
+    --text: #f2e9d8;
+    --text-dim: #a89a82;
+    --accent: #c98a4b;
+    --accent-soft: rgba(201, 138, 75, 0.18);
+    --rec: #b5573c;
+    --rec-soft: rgba(181, 87, 60, 0.25);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(201,138,75,0.06), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(181,87,60,0.05), transparent 40%);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 36px 28px 32px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 700;
+    font-size: 26px;
+    margin: 0 0 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 0 0 32px;
+    line-height: 1.6;
+  }
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 20px 0 8px;
+  }
+
+  .rec-btn {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: none;
+    background: radial-gradient(circle at 35% 30%, #d9a267, var(--accent));
+    box-shadow: 0 12px 30px -8px rgba(201,138,75,0.5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease;
+  }
+  .rec-btn:active { transform: scale(0.96); }
+
+  .rec-btn.recording {
+    background: radial-gradient(circle at 35% 30%, #cf6f52, var(--rec));
+    box-shadow: 0 12px 30px -8px rgba(181,87,60,0.6);
+  }
+
+  .rec-btn::before,
+  .rec-btn::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid var(--accent-soft);
+    inset: -14px;
+    opacity: 0;
+  }
+  .rec-btn.recording::before,
+  .rec-btn.recording::after {
+    border-color: var(--rec-soft);
+    animation: ripple 1.8s ease-out infinite;
+  }
+  .rec-btn.recording::after { animation-delay: 0.6s; }
+
+  @keyframes ripple {
+    0%   { inset: -6px; opacity: 0.9; }
+    100% { inset: -40px; opacity: 0; }
+  }
+
+  .icon {
+    width: 34px;
+    height: 34px;
+    fill: #1b1712;
+  }
+
+  .status {
+    font-size: 13px;
+    color: var(--text-dim);
+    min-height: 18px;
+    letter-spacing: 0.02em;
+  }
+
+  .result {
+    margin-top: 28px;
+    border-top: 1px dashed var(--line);
+    padding-top: 24px;
+    display: none;
+  }
+  .result.show { display: block; }
+
+  .result-label {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 0 0 10px;
+  }
+
+  .intent-tag {
+    display: inline-block;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(201,138,75,0.35);
+    border-radius: 999px;
+    padding: 6px 18px;
+    margin-bottom: 14px;
+  }
+
+  .message {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    margin: 0 0 16px;
+  }
+
+  details {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  details summary { cursor: pointer; }
+  .feat-grid {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    font-family: monospace;
+  }
+
+  .error {
+    color: var(--rec);
+    font-size: 13px;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <p class="eyebrow">AI 聲音判讀 · 雛形版</p>
+  <h1>貓語翻譯</h1>
+  <p class="sub">按住錄音鍵,錄下貓咪的叫聲,放開後自動送出判讀。規則式雛形,準確率僅供參考。</p>
+
+  <div class="stage">
+    <button class="rec-btn" id="recBtn" aria-label="按住錄音">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V21h2v-3.07A7 7 0 0 0 19 11h-2z"/></svg>
+    </button>
+    <p class="status" id="status">按住開始錄音</p>
+  </div>
+
+  <div class="result" id="result">
+    <p class="result-label">判讀結果</p>
+    <span class="intent-tag" id="intentTag">—</span>
+    <p class="message" id="message"></p>
+    <details>
+      <summary>原始特徵數據</summary>
+      <div class="feat-grid" id="featGrid"></div>
+    </details>
+  </div>
+
+  <p class="error" id="errorMsg"></p>
+</div>
+
+<script>
+const recBtn = document.getElementById('recBtn');
+const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+const intentTag = document.getElementById('intentTag');
+const messageEl = document.getElementById('message');
+const featGrid = document.getElementById('featGrid');
+const errorMsg = document.getElementById('errorMsg');
+
+let mediaRecorder;
+let chunks = [];
+let stream;
+
+async function startRecording() {
+  errorMsg.textContent = '';
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    errorMsg.textContent = '無法取得麥克風權限,請檢查瀏覽器設定';
+    return;
+  }
+  chunks = [];
+  mediaRecorder = new MediaRecorder(stream);
+  mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+  mediaRecorder.onstop = onRecordingStop;
+  mediaRecorder.start();
+
+  recBtn.classList.add('recording');
+  statusEl.textContent = '錄音中,放開送出';
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    stream.getTracks().forEach((t) => t.stop());
+  }
+  recBtn.classList.remove('recording');
+}
+
+async function onRecordingStop() {
+  statusEl.textContent = '分析中…';
+  const blob = new Blob(chunks, { type: 'audio/webm' });
+
+  const formData = new FormData();
+  formData.append('audio', blob, 'recording.webm');
+
+  try {
+    const res = await fetch('/analyze', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorMsg.textContent = data.error || '分析失敗';
+      statusEl.textContent = '按住開始錄音';
+      return;
+    }
+
+    intentTag.textContent = data.intent;
+    messageEl.textContent = data.message;
+    featGrid.innerHTML = Object.entries(data.features)
+      .map(([k, v]) => `<span>${k}</span><span>${Number(v).toFixed(3)}</span>`)
+      .join('');
+    resultEl.classList.add('show');
+    statusEl.textContent = '按住開始錄音';
+  } catch (err) {
+    errorMsg.textContent = '連不到伺服器,請確認網路連線';
+    statusEl.textContent = '按住開始錄音';
+  }
+}
+
+// 按住錄音、放開送出(手機觸控 + 桌機滑鼠都支援)
+recBtn.addEventListener('mousedown', startRecording);
+recBtn.addEventListener('mouseup', stopRecording);
+recBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
+recBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
+</script>
+
+</body>
+</html>
