@@ -342,10 +342,17 @@ function encodeWAV(samples, sampleRate) {
 }
 
 async function onRecordingStop() {
-  statusEl.textContent = '分析中…';
-
   const merged = mergeChunks(recordedChunks);
   const downsampled = downsample(merged, inputSampleRate, OUTPUT_SAMPLE_RATE);
+
+  const MIN_SAMPLES = OUTPUT_SAMPLE_RATE * 0.15; // 至少 0.15 秒才送出
+  if (downsampled.length < MIN_SAMPLES) {
+    errorMsg.textContent = '錄音太短,請按住久一點再放開';
+    statusEl.textContent = '按住開始錄音';
+    return;
+  }
+
+  statusEl.textContent = '分析中…';
   const wavBlob = encodeWAV(downsampled, OUTPUT_SAMPLE_RATE);
 
   const formData = new FormData();

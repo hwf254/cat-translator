@@ -68,6 +68,17 @@ def extract_features(audio_path: str) -> dict:
 
     duration = librosa.get_duration(y=y, sr=sr)
 
+    # 錄音太短或幾乎是空的(例如手指按太快就放開),直接回傳預設值,
+    # 避免 zero_crossing_rate / spectral_flatness / autocorrelate 在極短陣列上出錯
+    if len(y) < 512:
+        return {
+            "duration": duration,
+            "mean_f0": 0.0,
+            "f0_trend": 0.0,
+            "noisiness": 0.0,
+            "periodicity": 0.0,
+        }
+
     pitch_track = _estimate_pitch_track(y, sr)
     f0_voiced = pitch_track[pitch_track > 0]
 
